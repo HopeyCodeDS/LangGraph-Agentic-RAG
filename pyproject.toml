@@ -1,0 +1,22 @@
+[project]
+name = "agentic-rag-system"
+version = "0.1.0"
+description = "Agentic RAG system with LangGraph that auto-corrects retrieval errors"
+requires-python = ">=3.10"
+dependencies = [
+    "langchain",
+    "langchain-openai",
+    "langchain-community",
+    "langgraph",
+    "python-dotenv",
+    "tiktoken",
+    "faiss-cpu",
+    "beautifulsoup4",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
