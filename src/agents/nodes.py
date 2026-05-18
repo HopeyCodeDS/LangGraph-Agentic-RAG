@@ -1,5 +1,5 @@
 from typing import Annotated
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 from langgraph.prebuilt import ToolNode
 from ..config import get_llm
 
@@ -18,51 +18,60 @@ def create_agent_node(tools):
 def create_rewrite_node():
     llm = get_llm()
 
+    system_prompt = (
+        "You are a query rewriter. Transform the user's question into a more "
+        "effective search query by:\n"
+        "1. Using more precise terminology\n"
+        "2. Adding relevant keywords\n"
+        "3. Making it clearer and more specific\n\n"
+        "Return ONLY the rewritten question, nothing else."
+    )
+
     def rewrite(state):
         messages = state["messages"]
         question = messages[0].content
 
-        rewrite_prompt = f"""You are a query rewriter. Your task is to transform the user's question into a more effective search query.
-        
-                                Original question: {question}
+        response = llm.invoke([
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=f"Rewrite this question for search:\n\n{question}"),
+        ])
 
-                                Rewrite this question to be more search-friendly by:
-                                1. Using more precise terminology
-                                2. Adding relevant keywords
-                                3. Making it clearer and more specific
+        return {
+            "messages": [HumanMessage(content=response.content)],
+            "rewrites": state.get("rewrites", 0) + 1,
+        }
 
-                                Return ONLY the rewritten question, nothing else."""
-        
-        response = llm.invoke([SystemMessage(content=rewrite_prompt)])
-
-        return {"messages": [HumanMessage(content=response.content)]}
-    
     return rewrite
 
 def create_generate_node():
     llm = get_llm()
+
+    system_prompt = (
+        "You are a helpful AI assistant. Answer the user's question using ONLY "
+        "the provided context. If the context does not contain the answer, say so."
+    )
 
     def generate(state):
         messages = state["messages"]
         question = messages[0].content
 
         context = ""
-        for msg in messages:
-            if hasattr(msg, 'content') and isinstance(msg.content, str):
-                if "Retrieved documents" in msg.content or "Document" in msg.content:
-                    context = msg.content
-                    break
-        
-        generation_prompt = f"""You are an AI assistant. Answer the question based on the provided context.
+        for msg in reversed(messages):
+            if isinstance(msg, ToolMessage):
+                context = msg.content
+                break
 
-                                Context: {context}
+        user_prompt = (
+            f"Context:\n{context}\n\n"
+            f"Question: {question}\n\n"
+            "Provide a clear, accurate answer based solely on the context above."
+        )
 
-                                Question: {question}
+        response = llm.invoke([
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=user_prompt),
+        ])
 
-                                Provide a clear, accurate answer based solely on the context provided."""
-
-        response = llm.invoke([SystemMessage(content=generation_prompt)])
-        
         return {"messages": [response]}
-    
+
     return generate

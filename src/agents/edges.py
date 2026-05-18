@@ -2,6 +2,8 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 from ..config import get_llm
 
+MAX_REWRITES = 2
+
 class GradeDocuments(BaseModel):
     binary_score: str = Field(
         description="Documents are relevant to the question, 'yes' or 'no'"
@@ -17,6 +19,14 @@ def create_grade_documents():
     def grade_documents(state):
         messages = state["messages"]
         question = messages[0].content
+
+        rewrites_so_far = state.get("rewrites", 0)
+        if rewrites_so_far >= MAX_REWRITES:
+            print(
+                f"\n🛑 Rewrite budget exhausted ({rewrites_so_far}/{MAX_REWRITES}). "
+                "Forcing generate with current context.\n"
+            )
+            return "generate"
 
         last_message = messages[-1]
 
@@ -58,4 +68,4 @@ def route_after_agent(state):
     if hasattr(last_message, 'tool_calls') and last_message.tool_calls:
         return "retrieve"
     else:
-        "end"
+        return "end"
