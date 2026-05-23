@@ -11,3 +11,8 @@ build/
 .env
 .DS_Store
 *.log
+.vscode/
+
+# Streamlit UI runtime data
+data/faiss_index/
+data/sources.json

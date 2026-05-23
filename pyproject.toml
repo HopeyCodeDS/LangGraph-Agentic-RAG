@@ -17,6 +17,8 @@ dependencies = [
     "tiktoken",
     "faiss-cpu",
     "beautifulsoup4",
+    "streamlit>=1.39",
+    "pypdf",
 ]
 
 [tool.hatch.build.targets.wheel]
