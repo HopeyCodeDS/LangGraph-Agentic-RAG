@@ -1,8 +1,9 @@
+import os
 from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 from ..config import get_llm
 
-MAX_REWRITES = 2
+MAX_REWRITES = int(os.getenv("MAX_REWRITES", "2"))
 
 class GradeDocuments(BaseModel):
     binary_score: str = Field(
