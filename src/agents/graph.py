@@ -5,7 +5,7 @@ from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
 from .nodes import create_agent_node, create_rewrite_node, create_generate_node
 from .edges import create_grade_documents, route_after_agent
-# from IPython.display import Image, display
+from IPython.display import Image, display
 
 class GraphState(TypedDict):
     messages: Annotated[list, add_messages]
