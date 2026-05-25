@@ -1,8 +1,59 @@
-# LangGraph Agentic RAG
+<h1 align="center">LangGraph Agentic RAG</h1>
 
-A self-correcting Agentic Retrieval-Augmented Generation (RAG) system built with [LangGraph](https://github.com/langchain-ai/langgraph). Instead of blindly stuffing retrieved documents into a prompt, the agent **reasons** about when to retrieve, **grades** the relevance of what it gets back, and **rewrites** the query to try again when the retrieved context is weak.
+<p align="center">
+  <em>A self-correcting Retrieval-Augmented Generation system that reasons, grades, and rewrites — built with LangGraph.</em>
+</p>
 
-Supports multiple LLM and embedding providers out of the box — OpenAI, Ollama, Groq, Google Gemini, and HuggingFace, so you can run it fully local, fully cloud, or mix and match.
+<p align="center">
+  <img src="images/img_3.png" alt="Agentic RAG — Streamlit UI with reasoning trace" width="900">
+</p>
+
+<p align="center">
+  <a href="https://github.com/langchain-ai/langgraph"><img alt="Built with LangGraph" src="https://img.shields.io/badge/Built%20with-LangGraph-7c3aed"></a>
+  <a href="https://streamlit.io/"><img alt="Streamlit UI" src="https://img.shields.io/badge/UI-Streamlit-ff4b4b"></a>
+  <img alt="Python 3.10+" src="https://img.shields.io/badge/Python-3.10%2B-3776ab">
+  <img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-green">
+</p>
+
+---
+
+Instead of blindly stuffing retrieved documents into a prompt, the agent **reasons** about when to retrieve, **grades** the relevance of what it gets back, and **rewrites** the query to try again when the retrieved context is weak.
+
+Supports multiple LLM and embedding providers out of the box — **OpenAI, Ollama, Groq, Google Gemini, and HuggingFace** — so you can run it fully local, fully cloud, or mix and match.
+
+Ships with both a **CLI** entry point and a clean **Streamlit UI** for interactive use, knowledge-base management, and live graph inspection.
+
+---
+
+## Screenshots
+
+### Chat with full reasoning trace
+Every answer comes with an expandable trace of what the graph actually did — agent routing, relevance grading, retrieval, and generation — plus the exact source chunks used.
+
+<p align="center">
+  <img src="images/img_3.png" alt="Chat with reasoning trace and sources" width="850">
+</p>
+
+### Knowledge Base — ingest URLs or files
+Drop in URLs (one per line) or upload PDF / TXT / Markdown files. The app splits, embeds, and adds them to the FAISS index live, then lists every ingested source with its chunk count.
+
+<p align="center">
+  <img src="images/img_5.png" alt="Knowledge Base with ingested source" width="850">
+</p>
+
+### Graph & State — live workflow inspector
+Visualize the compiled LangGraph and inspect the raw `GraphState` (messages, reasoning trace, tool calls) after each turn. Great for debugging agent behavior.
+
+<p align="center">
+  <img src="images/img_7.png" alt="Graph and State inspector with JSON snapshot" width="850">
+</p>
+
+### Provider config in the sidebar
+Swap LLM provider, model, temperature, and embedding backend without touching code. Status badges at the bottom confirm what's actually wired up.
+
+<p align="center">
+  <img src="images/img_1.png" alt="Sidebar provider configuration and welcome screen" width="850">
+</p>
 
 ---
 
@@ -58,7 +109,7 @@ This project models retrieval as a **state machine** where the LLM is in the dri
 
 ```
 src/
-├── main.py                 # Entry point — ingests URLs, builds graph, runs sample questions
+├── main.py                 # CLI entry — ingests URLs, builds graph, runs sample questions
 ├── retriever.py            # WebBaseLoader → splitter → FAISS → retriever tool
 ├── agents/
 │   ├── graph.py            # LangGraph StateGraph wiring
@@ -71,6 +122,12 @@ src/
     ├── groq.py             # Groq LLM
     ├── gemini.py           # Google Gemini LLM
     └── huggingface.py      # HuggingFace embeddings (local)
+
+ui/
+├── app.py                  # Streamlit app entry point
+├── state.py                # session-state helpers
+├── components/             # chat, knowledge-base, graph-inspector UI
+└── services/               # ingestion, retrieval, graph orchestration glue
 ```
 
 ---
@@ -112,8 +169,8 @@ LLM_PROVIDER=openai            # openai | ollama | groq | google
 EMBEDDINGS_PROVIDER=openai     # openai | huggingface | ollama
 
 # --- credentials (only the ones you need) ---
-OPENAI_API_KEY=sk-...
-GROQ_API_KEY=gsk-...
+OPENAI_API_KEY=...
+GROQ_API_KEY=...
 GOOGLE_API_KEY=...
 
 # --- optional model overrides ---
@@ -139,6 +196,21 @@ HF_EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
 ---
 
 ## Running
+
+### Streamlit UI (recommended)
+
+```bash
+streamlit run ui/app.py
+```
+
+Open the URL Streamlit prints (typically `http://localhost:8501`) and you'll land on the screens shown in [Screenshots](#screenshots) above. Workflow:
+
+1. Pick your provider/model in the sidebar and click **Apply & Rebuild Graph**.
+2. Go to **Knowledge Base** and ingest one or more URLs or upload PDF/TXT/MD files.
+3. Switch to **Chat** and ask away — each answer expands into a reasoning trace and source chunks.
+4. Open **Graph & State** to view the compiled LangGraph and the raw state from the last turn.
+
+### CLI
 
 ```bash
 python -m src.main
@@ -213,22 +285,13 @@ Tune the strictness of the grader by editing `grade_prompt` in [src/agents/edges
 
 ---
 
-## Extending
-
-- **Add a new LLM provider** — drop a `src/config/<name>.py` exposing `get_llm()` / `get_embeddings()`, then add a branch in [src/config/\_\_init\_\_.py](src/config/__init__.py).
-- **Persist the vector store** — replace `FAISS.from_documents` with `FAISS.load_local` / `save_local` in [src/retriever.py](src/retriever.py).
-- **Add more tools** — append them to the `tools` list in [src/main.py](src/main.py); the agent will pick which to call.
-- **Visualize the graph** — uncomment the `IPython.display` import in [src/agents/graph.py](src/agents/graph.py) and render `app.get_graph().draw_mermaid_png()`.
-
----
-
 ## Tech Stack
 
-- [LangGraph](https://github.com/langchain-ai/langgraph) — stateful agent orchestration
-- [LangChain](https://github.com/langchain-ai/langchain) — model + tool abstractions
-- [FAISS](https://github.com/facebookresearch/faiss) — vector similarity search
-- [Pydantic](https://docs.pydantic.dev/) — structured output schemas
-- [BeautifulSoup4](https://www.crummy.com/software/BeautifulSoup/) — HTML parsing for web ingestion
+- [LangGraph](https://github.com/langchain-ai/langgraph): stateful agent orchestration
+- [LangChain](https://github.com/langchain-ai/langchain): model + tool abstractions
+- [FAISS](https://github.com/facebookresearch/faiss): vector similarity search
+- [Pydantic](https://docs.pydantic.dev/): structured output schemas
+- [BeautifulSoup4](https://www.crummy.com/software/BeautifulSoup/): HTML parsing for web ingestion
 
 ---
 
